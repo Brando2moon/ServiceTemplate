@@ -1,0 +1,36 @@
+id',1).maybeSingle();
+    if(!data)return;const form=$('[data-settings-form]');
+    for(const [key,value] of Object.entries(data)){if(form?.elements[key])form.elements[key].value=value??''}
+    $('[data-admin-company]').textContent=data.company_name||'Service Admin';
+  }
+
+  async function loadInquiries(){
+    if(!canManage())return;
+    const {data,error}=await client.from('svc_inquiries').select('*').order('created_at',{ascending:false});
+    const body=$('[data-inquiry-rows]');if(error){body.innerHTML='<tr><td colspan="5">Unable to load inquiries.</td></tr>';return}
+    state.inquiries=data||[];body.innerHTML=state.inquiries.length?state.inquiries.map(item=>`<tr><td><strong>${esc(item.name)}</strong><small>${esc(item.phone)} · ${esc(item.email)}</small></td><td>${esc(item.service_needed||'General request')}</td><td>${badge(item.status)}</td><td>${fmt(item.created_at)}</td><td><button class="table-action" data-edit-inquiry="${item.id}">Review</button></td></tr>`).join(''):'<tr><td colspan="5">No inquiries yet.</td></tr>';
+  }
+
+  function openInquiry(id){
+    const item=state.inquiries.find(row=>row.id===id);if(!item)return;
+    const form=$('[data-inquiry-editor]');form.hidden=false;form.elements.id.value=item.id;form.elements.status.value=item.status;form.elements.quote_amount.value=item.quote_amount??'';form.elements.call_notes.value=item.call_notes??'';
+    const detail=$('[data-inquiry-detail]');detail.hidden=false;detail.innerHTML=`<span class="eyebrow">Customer request</span><h3>${esc(item.name)}</h3><p><strong>${esc(item.service_needed||'General request')}</strong></p><p>${esc(item.message)}</p><div class="job-meta"><div><small>Phone</small>${esc(item.phone)}</div><div><small>Email</small>${esc(item.email)}</div><div><small>Status</small>${esc(item.status)}</div><div><small>Private quote</small>${money(item.quote_amount)}</div></div>`;
+    form.scrollIntoView({behavior:'smooth'});
+  }
+
+  async function saveInquiry(event){
+    event.preventDefault();const form=event.currentTarget,status=$('[data-inquiry-status]');
+    const row={status:form.elements.status.value,quote_amount:form.elements.quote_amount.value?Number(form.elements.quote_amount.value):null,call_notes:form.elements.call_notes.value.trim()||null,updated_at:new Date().toISOString()};
+    const {error}=await client.from('svc_inquiries').update(row).eq('id',form.elements.id.value);status.textContent=error?error.message:'Inquiry saved.';if(!error){await loadInquiries();openInquiry(form.elements.id.value);await loadDashboardMetrics()}
+  }
+
+  function createJobFromInquiry(){
+    const inquiry=state.inquiries.find(row=>row.id===$('[data-inquiry-editor]').elements.id.value);if(!inquiry)return;
+    const form=$('[data-job-form]');form.reset();form.elements.id.value='';form.elements.inquiry_id.value=inquiry.id;form.elements.customer_name.value=inquiry.name;form.elements.phone.value=inquiry.phone;form.elements.email.value=inquiry.email;form.elements.service_name.value=inquiry.service_needed||'';form.elements.instructions.value=[inquiry.message,inquiry.call_notes].filter(Boolean).join('\n\n');
+    setView('jobs');form.scrollIntoView({behavior:'smooth'});
+  }
+
+  async function loadStaff(){
+    const {data,error}=await client.from('svc_profiles').select('*').order('full_name');if(error)return;
+    state.staff=data||[];const select=$('[data-job-form] [name="assigned_to"]');
+    if(select)select.innerHTML='<option value="">Unassigned</option>'+state.staff.filter(p=>p.active&&['manager','employee'].includes(p.role)).map(p=>`<option value="${p.i
