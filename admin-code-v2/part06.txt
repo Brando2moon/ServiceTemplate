@@ -1,0 +1,48 @@
+n: ${esc(item.reason)}</p><small>${fmt(item.created_at)}</small></article>`});
+    entries.sort((a,b)=>new Date(b.date)-new Date(a.date));$('[data-job-activity-list]').innerHTML=entries.length?entries.map(e=>e.html).join(''):'<div class="empty-admin">No notes, photos, or schedule changes yet.</div>';
+  }
+
+  async function loadServices(){
+    if(!canManage())return;const {data,error}=await client.from('svc_services').select('*').order('sort_order').order('name');if(error)return;state.services=data||[];
+    $('[data-service-list]').innerHTML=state.services.map(item=>`<article class="content-item"><div><strong>${esc(item.name)}</strong><p>${esc(item.short_description)} · ${item.active?'Active':'Hidden'}</p></div><div class="content-item-actions"><button data-edit-service="${item.id}">Edit</button>${isOwner()?`<button data-delete-service="${item.id}">Delete</button>`:''}</div></article>`).join('')||'<div class="empty-admin">No services.</div>';
+  }
+  function editService(id){const item=state.services.find(row=>row.id===id),form=$('[data-service-form]');if(!item)return;for(const key of ['id','name','short_description','long_description','image_url','sort_order'])form.elements[key].value=item[key]??'';form.elements.featured.checked=item.featured;form.elements.active.checked=item.active;form.scrollIntoView({behavior:'smooth'})}
+  async function saveService(event){event.preventDefault();const form=event.currentTarget,status=$('[data-service-status]'),row={name:form.elements.name.value.trim(),short_description:form.elements.short_description.value.trim(),long_description:form.elements.long_description.value.trim()||null,image_url:form.elements.image_url.value.trim()||null,sort_order:Number(form.elements.sort_order.value||0),featured:form.elements.featured.checked,active:form.elements.active.checked};const result=form.elements.id.value?await client.from('svc_services').update(row).eq('id',form.elements.id.value):await client.from('svc_services').insert(row);status.textContent=result.error?result.error.message:'Service saved.';if(!result.error){form.reset();form.elements.active.checked=true;await loadServices()}}
+
+  function projectStoragePath(url=''){
+    const marker='/storage/v1/object/public/service-public/';
+    const index=String(url).indexOf(marker);
+    return index<0?null:decodeURIComponent(String(url).slice(index+marker.length));
+  }
+
+  function updateProjectPhotoPreview(kind,url=''){
+    const image=$(`[data-${kind}-photo-preview]`);
+    const empty=$(`[data-${kind}-photo-empty]`);
+    const remove=$(`[data-remove-${kind}-photo]`);
+    if(image){image.hidden=!url;image.src=url||''}
+    if(empty)empty.hidden=Boolean(url);
+    if(remove)remove.hidden=!url;
+  }
+
+  function clearProjectForm(){
+    const form=$('[data-project-form]');
+    if(!form)return;
+    form.reset();
+    form.elements.id.value='';
+    form.elements.before_image_url.value='';
+    form.elements.after_image_url.value='';
+    updateProjectPhotoPreview('before','');
+    updateProjectPhotoPreview('after','');
+    $('[data-project-status]').textContent='';
+  }
+
+  function validateProjectPhoto(file){
+    if(!file)return;
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Photos must be JPG, PNG, or WebP.');
+    if(file.size>8*1024*1024)throw new Error('Each photo must be 8 MB or smaller.');
+  }
+
+  async function uploadProjectPhoto(file,kind,projectKey){
+    validateProjectPhoto(file);
+    const extension=(file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
+    const unique
