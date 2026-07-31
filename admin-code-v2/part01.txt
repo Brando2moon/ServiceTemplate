@@ -1,0 +1,54 @@
+(()=>{
+  'use strict';
+  const C=window.SERVICE_CONFIG||{};
+  const client=(window.supabase&&C.supabaseUrl&&C.supabasePublishableKey)?window.supabase.createClient(C.supabaseUrl,C.supabasePublishableKey):null;
+  const $=(s,r=document)=>r.querySelector(s);
+  const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+  const esc=(value='')=>String(value).replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+  const money=value=>value===null||value===undefined||value===''?'Not recorded':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(value));
+  const fmt=value=>value?new Date(value).toLocaleString([], {dateStyle:'medium',timeStyle:'short'}):'Not scheduled';
+  const localInput=value=>value?new Date(new Date(value).getTime()-new Date(value).getTimezoneOffset()*60000).toISOString().slice(0,16):'';
+  const state={session:null,profile:null,inquiries:[],jobs:[],services:[],projects:[],staff:[],notifications:[],currentJob:null,calendarRange:'week'};
+
+  function showAlert(message,error=false){const box=$('[data-admin-alert]');if(!box)return;box.hidden=!message;box.textContent=message||'';box.style.borderColor=error?'#8f3c48':'#38617f'}
+  function badge(value=''){return `<span class="status-badge ${esc(value)}">${esc(value.replaceAll('_',' '))}</span>`}
+  function canManage(){return ['owner','manager'].includes(state.profile?.role)}
+  function isOwner(){return state.profile?.role==='owner'}
+
+  async function login(event){
+    event.preventDefault();const form=event.currentTarget,status=$('[data-login-status]');
+    if(!client){status.textContent='Supabase is not configured.';return}
+    status.textContent='Signing in…';const submit=form.querySelector('button[type="submit"]');submit.disabled=true;
+    const {error}=await client.auth.signInWithPassword({email:form.email.value.trim(),password:form.password.value});submit.disabled=false;
+    if(error){status.textContent='The email or password is incorrect.';return}
+    location.href='admin.html';
+  }
+
+  async function requireSession(){
+    if(!client){location.href='admin-login.html';return false}
+    const {data:{session}}=await client.auth.getSession();
+    if(!session){location.href='admin-login.html';return false}
+    const {data:profile,error}=await client.from('svc_profiles').select('*').eq('id',session.user.id).eq('active',true).maybeSingle();
+    if(error||!profile){await client.auth.signOut();location.href='admin-login.html';return false}
+    state.session=session;state.profile=profile;applyRole();return true;
+  }
+
+  function applyRole(){
+    const role=state.profile.role;
+    $$('[data-roles]').forEach(el=>{const allowed=el.dataset.roles.split(',');el.hidden=!allowed.includes(role)});
+    $('[data-user-name]').textContent=state.profile.full_name||state.profile.email;
+    $('[data-user-role]').textContent=role;
+    $('[data-admin-role]').textContent=`${role} account`;
+  }
+
+  function setView(name){
+    const button=$(`[data-view-button="${name}"]`);if(button?.hidden)return;
+    $$('[data-view]').forEach(view=>view.classList.toggle('active',view.dataset.view===name));
+    $$('[data-view-button]').forEach(btn=>btn.classList.toggle('active',btn.dataset.viewButton===name));
+    $('[data-view-title]').textContent=button?.textContent.trim().replace(/\d+$/,'')||'Admin';
+    $('.admin-sidebar')?.classList.remove('open');window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  async function loadSettings(){
+    if(!canManage())return;
+    const {data}=await client.from('svc_site_settings').select('*').eq('
