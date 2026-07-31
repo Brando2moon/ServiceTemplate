@@ -1,0 +1,41 @@
+]');if(range){state.calendarRange=range.dataset.calendarRange;$$('[data-calendar-range]').forEach(b=>b.classList.toggle('active',b===range));renderJobs();return}
+      if(event.target.closest('[data-clear-job-filter]')){$('[data-job-date-filter]').value='';renderJobs();return}
+      const es=event.target.closest('[data-edit-service]');if(es){editService(es.dataset.editService);return}
+      const ds=event.target.closest('[data-delete-service]');if(ds){deleteContent('svc_services',ds.dataset.deleteService,loadServices);return}
+      const ep=event.target.closest('[data-edit-project]');if(ep){editProject(ep.dataset.editProject);return}
+      const dp=event.target.closest('[data-delete-project]');if(dp){deleteProject(dp.dataset.deleteProject);return}
+      if(event.target.closest('[data-remove-before-photo]')){removeProjectPhoto('before');return}
+      if(event.target.closest('[data-remove-after-photo]')){removeProjectPhoto('after');return}
+      if(event.target.closest('[data-clear-project-form]')){clearProjectForm();return}
+      const toggle=event.target.closest('[data-toggle-staff]');if(toggle){const person=state.staff.find(p=>p.id===toggle.dataset.toggleStaff);staffAction('update',person.id,{active:!person.active,role:$(`[data-staff-role="${person.id}"]`).value});return}
+      const del=event.target.closest('[data-delete-staff]');if(del&&confirm('Delete this staff account and remove access?')){staffAction('delete',del.dataset.deleteStaff);return}
+      const read=event.target.closest('[data-read-notification]');if(read){markNotificationRead(read.dataset.readNotification);return}
+      const nj=event.target.closest('[data-notification-job]');if(nj){setView('jobs');openJob(nj.dataset.notificationJob);markNotificationRead(nj.closest('[data-read-notification]')?.dataset.readNotification);return}
+      if(event.target.closest('[data-mark-all-read]')){client.from('svc_notifications').update({read_at:new Date().toISOString()}).is('read_at',null).then(()=>loadNotifications());return}
+      if(event.target.closest('[data-refresh-inquiries]')){loadInquiries();return}
+    });
+    $('[data-job-date-filter]')?.addEventListener('change',renderJobs);
+    $('[data-inquiry-editor]')?.addEventListener('submit',saveInquiry);
+    $('[data-job-form]')?.addEventListener('submit',saveJob);
+    $('[data-job-status-form]')?.addEventListener('submit',updateJobStatus);
+    $('[data-reschedule-form]')?.addEventListener('submit',rescheduleJob);
+    $('[data-job-note-form]')?.addEventListener('submit',saveJobNote);
+    $('[data-job-photo-form]')?.addEventListener('submit',uploadJobPhoto);
+    $('[data-service-form]')?.addEventListener('submit',saveService);
+    $('[data-project-form]')?.addEventListener('submit',saveProject);
+    $('[data-settings-form]')?.addEventListener('submit',saveSettings);
+    $('[data-staff-form]')?.addEventListener('submit',saveStaff);
+    $('[data-signout]')?.addEventListener('click',async()=>{await client.auth.signOut();location.href='admin-login.html'});
+  }
+
+  async function initializeAdmin(){
+    if(!(await requireSession()))return;bindEvents();
+    await Promise.all([loadStaff(),loadJobs(),loadNotifications(),loadInquiries(),loadServices(),loadProjects(),loadSettings()]);
+    await loadDashboardMetrics();
+  }
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    const loginForm=$('[data-login]');if(loginForm){loginForm.addEventListener('submit',login);return}
+    initializeAdmin().catch(error=>{console.error(error);showAlert('The admin could not finish loading.',true)});
+  });
+})();
