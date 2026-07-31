@@ -1,0 +1,50 @@
+_category.value.trim()||null,location_label:form.elements.location_label.value.trim()||null,description:form.elements.description.value.trim()||null,before_image_url:beforeUrl,after_image_url:afterUrl,completed_on:form.elements.completed_on.value||null,sort_order:Number(form.elements.sort_order.value||0),featured:form.elements.featured.checked,published:Boolean(requestedPublished&&beforeUrl&&afterUrl),updated_at:new Date().toISOString()};
+      const result=id?await client.from('svc_projects').update(row).eq('id',id):await client.from('svc_projects').insert(row);
+      if(result.error)throw result.error;
+      if(beforeFile&&existing?.before_image_url&&existing.before_image_url!==beforeUrl)await deleteStoredProjectPhoto(existing.before_image_url);
+      if(afterFile&&existing?.after_image_url&&existing.after_image_url!==afterUrl)await deleteStoredProjectPhoto(existing.after_image_url);
+      status.textContent=requestedPublished&&!row.published?'Project saved as a draft. Add both photos before publishing.':'Project saved.';
+      clearProjectForm();
+      await loadProjects();
+    }catch(error){console.error(error);status.textContent=error.message||'The project could not be saved.'}
+    finally{submit.disabled=false}
+  }
+
+  async function removeProjectPhoto(kind){
+    const form=$('[data-project-form]');
+    const id=form.elements.id.value;
+    const field=`${kind}_image_url`;
+    const currentUrl=form.elements[field].value.trim();
+    if(!currentUrl)return;
+    if(!confirm(`Remove the ${kind} photo? The project will be unpublished until both photos are added.`))return;
+    const status=$('[data-project-status]');
+    try{
+      status.textContent=`Removing ${kind} photo…`;
+      if(id){
+        const {error}=await client.from('svc_projects').update({[field]:null,published:false,updated_at:new Date().toISOString()}).eq('id',id);
+        if(error)throw error;
+      }
+      await deleteStoredProjectPhoto(currentUrl);
+      form.elements[field].value='';
+      form.elements.published.checked=false;
+      updateProjectPhotoPreview(kind,'');
+      status.textContent=`${kind[0].toUpperCase()+kind.slice(1)} photo removed.`;
+      await loadProjects();
+    }catch(error){console.error(error);status.textContent=error.message||'The photo could not be removed.'}
+  }
+
+  async function deleteProject(id){
+    const item=state.projects.find(row=>row.id===id);
+    if(!item||!confirm('Delete this project and its uploaded photos?'))return;
+    const {error}=await client.from('svc_projects').delete().eq('id',id);
+    if(error){showAlert(error.message,true);return}
+    await Promise.allSettled([deleteStoredProjectPhoto(item.before_image_url),deleteStoredProjectPhoto(item.after_image_url)]);
+    showAlert('Project deleted.');
+    clearProjectForm();
+    await loadProjects();
+  }
+
+  async function saveSettings(event){event.preventDefault();const form=event.currentTarget,status=$('[data-settings-status]'),row={};for(const key of ['company_name','tagline','phone','email','address','service_area','business_hours','logo_url','primary_color','accent_color','hero_title','hero_text','about_text'])row[key]=form.elements[key].value.trim()||null;row.id=1;row.updated_at=new Date().toISOString();const {error}=await client.from('svc_site_settings').upsert(row);status.textContent=error?error.message:'Website settings saved.';if(!error)$('[data-admin-company]').textContent=row.company_name}
+
+  async function loadNotifications(){
+    const {data,error}=await client.from('svc_notifications').select('*').order('created_at',{ascending:f
