@@ -2,40 +2,30 @@
 
 A reusable website and admin system for local service businesses.
 
-## Public Website
+## Public pages
 
 - Home
 - Services
 - About
 - Contact
-- Before-and-after project gallery
+- Before/after project effect
 - No public prices
 
-## Admin System
+## Admin
 
-- Secure login
-- Owner, Manager, and Employee roles
-- Customer inquiries and quotes
+- Owner, manager, and employee accounts
+- Inquiries and private quotes
 - Service calendar
-- Job scheduling
-- Employee assignments
-- Work notes
-- Before, progress, and after photos
-- Reschedule alerts for managers
-- Website colors, logo, contact details, and content
+- Employee job assignments
+- Work notes and photos
+- Employee rescheduling with manager alerts
+- Services, projects, contact details, logo, and colors
 
-## Design
+## Links
 
-- Very dark professional navy-blue theme
-- Electric-blue restoration animation
-- Mobile, tablet, and desktop friendly
+- Website: `https://brando2moon.github.io/ServiceTemplate/`
+- Admin: `https://brando2moon.github.io/ServiceTemplate/admin-login.html`
 
-## Project Status
+## Setup
 
-The design is approved. The next step is the implementation plan.
-
-## Full Design
-
-See:
-
-`docs/superpowers/specs/2026-07-31-service-business-template-design.md`
+See [`docs/setup.md`](docs/setup.md).
