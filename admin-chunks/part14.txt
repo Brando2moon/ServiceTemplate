@@ -1,0 +1,15 @@
+ry);return}
+      if(event.target.closest('[data-convert-inquiry]')){createJobFromInquiry();return}
+      const job=event.target.closest('[data-open-job]');if(job){openJob(job.dataset.openJob);return}
+      if(event.target.closest('[data-edit-current-job]')){editCurrentJob();return}
+      const range=event.target.closest('[data-calendar-range]');if(range){state.calendarRange=range.dataset.calendarRange;$$('[data-calendar-range]').forEach(b=>b.classList.toggle('active',b===range));renderJobs();return}
+      if(event.target.closest('[data-clear-job-filter]')){$('[data-job-date-filter]').value='';renderJobs();return}
+      const es=event.target.closest('[data-edit-service]');if(es){editService(es.dataset.editService);return}
+      const ds=event.target.closest('[data-delete-service]');if(ds){deleteContent('svc_services',ds.dataset.deleteService,loadServices);return}
+      const ep=event.target.closest('[data-edit-project]');if(ep){editProject(ep.dataset.editProject);return}
+      const dp=event.target.closest('[data-delete-project]');if(dp){deleteContent('svc_projects',dp.dataset.deleteProject,loadProjects);return}
+      const toggle=event.target.closest('[data-toggle-staff]');if(toggle){const person=state.staff.find(p=>p.id===toggle.dataset.toggleStaff);staffAction('update',person.id,{active:!person.active,role:$(`[data-staff-role="${person.id}"]`).value});return}
+      const del=event.target.closest('[data-delete-staff]');if(del&&confirm('Delete this staff account and remove access?')){staffAction('delete',del.dataset.deleteStaff);return}
+      const read=event.target.closest('[data-read-notification]');if(read){markNotificationRead(read.dataset.readNotification);return}
+      const nj=event.target.closest('[data-notification-job]');if(nj){setView('jobs');openJob(nj.dataset.notificationJob);markNotificationRead(nj.closest('[data-read-notification]')?.dataset.readNotification);return}
+      if(event.target.closest('[data-mark-all-read]')){client.from('svc_notification

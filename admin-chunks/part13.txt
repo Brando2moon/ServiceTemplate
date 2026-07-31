@@ -1,0 +1,13 @@
+    const jobs=state.jobs;const newInquiries=state.inquiries.filter(item=>['new','contacted','quoted'].includes(item.status)).length;const upcoming=jobs.filter(job=>new Date(job.scheduled_start)>=new Date()&&!['completed','cancelled'].includes(job.status)).length;const completed=jobs.filter(job=>job.status==='completed').length;const alerts=state.notifications.filter(item=>!item.read_at).length;
+    $('[data-metric-inquiries]').textContent=canManage()?newInquiries:'—';$('[data-metric-jobs]').textContent=upcoming;$('[data-metric-completed]').textContent=completed;$('[data-metric-alerts]').textContent=alerts;
+    $('[data-upcoming-jobs]').innerHTML=jobs.filter(job=>new Date(job.scheduled_start)>=new Date()&&!['completed','cancelled'].includes(job.status)).slice(0,6).map(job=>`<article class="schedule-item"><div class="schedule-time"><span>${new Date(job.scheduled_start).toLocaleDateString([],{month:'short',day:'numeric'})}</span><small>${new Date(job.scheduled_start).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</small></div><div><strong>${esc(job.service_name)}</strong><p>${esc(job.customer_name)} · ${esc(job.address)}</p></div>${badge(job.status)}</article>`).join('')||'<div class="empty-admin">No upcoming jobs.</div>';
+  }
+
+  async function deleteContent(table,id,loader){if(!confirm('Delete this record?'))return;const {error}=await client.from(table).delete().eq('id',id);showAlert(error?error.message:'Record deleted.',!!error);if(!error)await loader()}
+
+  function bindEvents(){
+    document.addEventListener('click',event=>{
+      const view=event.target.closest('[data-view-button]');if(view){setView(view.dataset.viewButton);return}
+      const jump=event.target.closest('[data-view-jump]');if(jump){setView(jump.dataset.viewJump);return}
+      if(event.target.closest('[data-admin-menu]')){$('.admin-sidebar').classList.toggle('open');return}
+      const inquiry=event.target.closest('[data-edit-inquiry]');if(inquiry){openInquiry(inquiry.dataset.editInqui

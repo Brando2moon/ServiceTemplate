@@ -1,0 +1,28 @@
+s').update({read_at:new Date().toISOString()}).is('read_at',null).then(()=>loadNotifications());return}
+      if(event.target.closest('[data-refresh-inquiries]')){loadInquiries();return}
+    });
+    $('[data-job-date-filter]')?.addEventListener('change',renderJobs);
+    $('[data-inquiry-editor]')?.addEventListener('submit',saveInquiry);
+    $('[data-job-form]')?.addEventListener('submit',saveJob);
+    $('[data-job-status-form]')?.addEventListener('submit',updateJobStatus);
+    $('[data-reschedule-form]')?.addEventListener('submit',rescheduleJob);
+    $('[data-job-note-form]')?.addEventListener('submit',saveJobNote);
+    $('[data-job-photo-form]')?.addEventListener('submit',uploadJobPhoto);
+    $('[data-service-form]')?.addEventListener('submit',saveService);
+    $('[data-project-form]')?.addEventListener('submit',saveProject);
+    $('[data-settings-form]')?.addEventListener('submit',saveSettings);
+    $('[data-staff-form]')?.addEventListener('submit',saveStaff);
+    $('[data-signout]')?.addEventListener('click',async()=>{await client.auth.signOut();location.href='admin-login.html'});
+  }
+
+  async function initializeAdmin(){
+    if(!(await requireSession()))return;bindEvents();
+    await Promise.all([loadStaff(),loadJobs(),loadNotifications(),loadInquiries(),loadServices(),loadProjects(),loadSettings()]);
+    await loadDashboardMetrics();
+  }
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    const loginForm=$('[data-login]');if(loginForm){loginForm.addEventListener('submit',login);return}
+    initializeAdmin().catch(error=>{console.error(error);showAlert('The admin could not finish loading.',true)});
+  });
+})();

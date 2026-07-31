@@ -1,0 +1,12 @@
+set();await loadProjects()}}
+
+  async function saveSettings(event){event.preventDefault();const form=event.currentTarget,status=$('[data-settings-status]'),row={};for(const key of ['company_name','tagline','phone','email','address','service_area','business_hours','logo_url','primary_color','accent_color','hero_title','hero_text','about_text'])row[key]=form.elements[key].value.trim()||null;row.id=1;row.updated_at=new Date().toISOString();const {error}=await client.from('svc_site_settings').upsert(row);status.textContent=error?error.message:'Website settings saved.';if(!error)$('[data-admin-company]').textContent=row.company_name}
+
+  async function loadNotifications(){
+    const {data,error}=await client.from('svc_notifications').select('*').order('created_at',{ascending:false});if(error)return;state.notifications=data||[];const unread=state.notifications.filter(item=>!item.read_at).length;
+    $('[data-notification-count]').textContent=unread||'';const markup=state.notifications.map(item=>`<article class="notification-item ${item.read_at?'':'unread'}"><strong>${esc(item.title)}</strong><p>${esc(item.message)}</p><small>${fmt(item.created_at)}</small><div>${item.job_id?`<button data-notification-job="${item.job_id}">Open job</button>`:''}${!item.read_at?`<button data-read-notification="${item.id}">Mark read</button>`:''}</div></article>`).join('')||'<div class="empty-admin">No notifications.</div>';
+    $('[data-notification-list]').innerHTML=markup;$('[data-dashboard-notifications]').innerHTML=state.notifications.slice(0,5).map(item=>`<article class="notification-item ${item.read_at?'':'unread'}"><strong>${esc(item.title)}</strong><p>${esc(item.message)}</p></article>`).join('')||'<div class="empty-admin">No alerts.</div>';
+  }
+  async function markNotificationRead(id){await client.from('svc_notifications').update({read_at:new Date().toISOString()}).eq('id',id);await Promise.all([loadNotifications(),loadDashboardMetrics()])}
+
+  async function loadDashboardMetrics(){
