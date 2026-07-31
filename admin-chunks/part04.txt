@@ -1,0 +1,18 @@
+aved.';if(!error){await loadInquiries();openInquiry(form.elements.id.value);await loadDashboardMetrics()}
+  }
+
+  function createJobFromInquiry(){
+    const inquiry=state.inquiries.find(row=>row.id===$('[data-inquiry-editor]').elements.id.value);if(!inquiry)return;
+    const form=$('[data-job-form]');form.reset();form.elements.id.value='';form.elements.inquiry_id.value=inquiry.id;form.elements.customer_name.value=inquiry.name;form.elements.phone.value=inquiry.phone;form.elements.email.value=inquiry.email;form.elements.service_name.value=inquiry.service_needed||'';form.elements.instructions.value=[inquiry.message,inquiry.call_notes].filter(Boolean).join('\n\n');
+    setView('jobs');form.scrollIntoView({behavior:'smooth'});
+  }
+
+  async function loadStaff(){
+    const {data,error}=await client.from('svc_profiles').select('*').order('full_name');if(error)return;
+    state.staff=data||[];const select=$('[data-job-form] [name="assigned_to"]');
+    if(select)select.innerHTML='<option value="">Unassigned</option>'+state.staff.filter(p=>p.active&&['manager','employee'].includes(p.role)).map(p=>`<option value="${p.id}">${esc(p.full_name||p.email)} — ${p.role}</option>`).join('');
+    const list=$('[data-staff-list]');if(!list||!isOwner())return;
+    list.innerHTML=state.staff.map(person=>`<article class="content-item"><div><strong>${esc(person.full_name||person.email)}</strong><p>${esc(person.email)} · ${esc(person.role)} · ${person.active?'Active':'Disabled'}</p></div><div class="content-item-actions">${person.role==='owner'?'<span class="status-badge">Owner</span>':`<select data-staff-role="${person.id}"><option value="manager" ${person.role==='manager'?'selected':''}>Manager</option><option value="employee" ${person.role==='employee'?'selected':''}>Employee</option></select><button data-toggle-staff="${person.id}">${person.active?'Disable':'Enable'}</button><button data-delete-staff="${person.id}">Delete</button>`}</div></article>`).join('');
+  }
+
+  async function save

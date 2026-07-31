@@ -1,0 +1,26 @@
+Staff(event){
+    event.preventDefault();const form=event.currentTarget,status=$('[data-staff-status]');status.textContent='Creating account…';
+    const {data,error}=await client.functions.invoke('service-staff-admin',{body:{action:'create',full_name:form.full_name.value.trim(),email:form.email.value.trim(),password:form.password.value,role:form.role.value}});
+    status.textContent=error?(data?.error||error.message):'Staff account created.';if(!error){form.reset();await loadStaff()}
+  }
+
+  async function staffAction(action,id,extra={}){
+    const {data,error}=await client.functions.invoke('service-staff-admin',{body:{action,user_id:id,...extra}});showAlert(error?(data?.error||error.message):'Staff access updated.',!!error);if(!error)await loadStaff();
+  }
+
+  async function loadJobs(){
+    const {data,error}=await client.from('svc_jobs').select('*,assigned:svc_profiles!svc_jobs_assigned_to_fkey(full_name,email,role)').order('scheduled_start',{ascending:true});
+    if(error){showAlert('Unable to load jobs.',true);return}
+    state.jobs=data||[];renderJobs();
+  }
+
+  function jobsForRange(){
+    let jobs=[...state.jobs];const filter=$('[data-job-date-filter]')?.value;if(filter)jobs=jobs.filter(job=>String(job.scheduled_start||'').slice(0,10)===filter);
+    const now=new Date();let end=null;if(state.calendarRange==='today'){end=new Date(now);end.setHours(23,59,59,999)}if(state.calendarRange==='week')end=new Date(now.getTime()+7*86400000);if(state.calendarRange==='month')end=new Date(now.getTime()+30*86400000);
+    if(end)jobs=jobs.filter(job=>new Date(job.scheduled_start)>=new Date(now.toDateString())&&new Date(job.scheduled_start)<=end);
+    return jobs;
+  }
+
+  function renderJobs(){
+    const board=$('[data-job-board]');if(!board)return;const jobs=jobsForRange();
+    board.innerHTML=jobs.length?jobs.map(job=>`<article class="job-card ${state.currentJob?.id===job.id?'selected':''}" data-open-job="${job.id}"><time>${fmt(job.scheduled_start)}</time><h3>${esc(job.servi
