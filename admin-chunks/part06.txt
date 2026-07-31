@@ -1,0 +1,16 @@
+ce_name)}</h3><p>${esc(job.customer_name)} · ${esc(job.address)}</p><div class="job-card-footer">${badge(job.status)}<small>${esc(job.assigned?.full_name||'Unassigned')}</small></div></article>`).join(''):'<div class="empty-admin">No jobs in this calendar range.</div>';
+  }
+
+  async function saveJob(event){
+    event.preventDefault();const form=event.currentTarget,status=$('[data-job-form-status]');
+    const row={inquiry_id:form.elements.inquiry_id.value||null,customer_name:form.elements.customer_name.value.trim(),phone:form.elements.phone.value.trim(),email:form.elements.email.value.trim()||null,address:form.elements.address.value.trim(),service_name:form.elements.service_name.value.trim(),instructions:form.elements.instructions.value.trim()||null,scheduled_start:new Date(form.elements.scheduled_start.value).toISOString(),scheduled_end:new Date(form.elements.scheduled_end.value).toISOString(),assigned_to:form.elements.assigned_to.value||null,priority:form.elements.priority.value,status:form.elements.status.value,updated_at:new Date().toISOString()};
+    let result=form.elements.id.value?await client.from('svc_jobs').update(row).eq('id',form.elements.id.value).select().single():await client.from('svc_jobs').insert({...row,created_by:state.session.user.id}).select().single();
+    if(result.error){status.textContent=result.error.message;return}
+    if(form.elements.inquiry_id.value)await client.from('svc_inquiries').update({status:'accepted',updated_at:new Date().toISOString()}).eq('id',form.elements.inquiry_id.value);
+    status.textContent='Job saved.';form.reset();await Promise.all([loadJobs(),loadInquiries(),loadDashboardMetrics()]);openJob(result.data.id);
+  }
+
+  async function openJob(id){
+    const job=state.jobs.find(row=>row.id===id);if(!job)return;state.currentJob=job;renderJobs();
+    const panel=$('[data-job-detail]');panel.hidden=false;
+    $('[data-job-detail-content]').innerHTML=`<span class="eyebrow">Service job</span><h3>${esc(job.service_name)}</h3

@@ -1,0 +1,14 @@
+urrentJob.id)}
+  }
+
+  async function loadJobActivity(jobId){
+    const [notesRes,photosRes,reschedulesRes]=await Promise.all([
+      client.from('svc_job_notes').select('*,author:svc_profiles!svc_job_notes_author_id_fkey(full_name)').eq('job_id',jobId).order('created_at',{ascending:false}),
+      client.from('svc_job_photos').select('*,uploader:svc_profiles!svc_job_photos_uploaded_by_fkey(full_name)').eq('job_id',jobId).order('created_at',{ascending:false}),
+      client.from('svc_reschedules').select('*,changer:svc_profiles!svc_reschedules_changed_by_fkey(full_name)').eq('job_id',jobId).order('created_at',{ascending:false})
+    ]);
+    const entries=[];
+    for(const note of notesRes.data||[])entries.push({date:note.created_at,html:`<article class="activity-item"><strong>Work note · ${esc(note.author?.full_name||'Staff')}</strong><p>${esc(note.note)}</p><small>${fmt(note.created_at)}${note.customer_visible?' · Customer-facing':''}</small></article>`});
+    for(const photo of photosRes.data||[]){const {data:signed}=await client.storage.from('service-job-files').createSignedUrl(photo.storage_path,3600);entries.push({date:photo.created_at,html:`<article class="activity-item"><strong>${esc(photo.category)} photo · ${esc(photo.uploader?.full_name||'Staff')}</strong>${signed?.signedUrl?`<img src="${signed.signedUrl}" alt="${esc(photo.caption||photo.category+' job photo')}" style="margin:10px 0;border-radius:10px;max-height:240px;object-fit:cover">`:''}<p>${esc(photo.caption||'')}</p><small>${fmt(photo.created_at)}</small></article>`})}
+    for(const item of reschedulesRes.data||[])entries.push({date:item.created_at,html:`<article class="activity-item"><strong>Schedule changed · ${esc(item.changer?.full_name||'Staff')}</strong><p>${fmt(item.old_start)} → ${fmt(item.new_start)}</p><p>Reason: ${esc(item.reason)}</p><small>${fmt(item.created_at)}</small></article>`});
+    entries.sort((a,b)=>new Date(b.date)-new Date(a.date));$('[data-job-activity-list]').innerHTML=ent

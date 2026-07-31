@@ -1,0 +1,20 @@
+><p>${esc(job.customer_name)} · ${esc(job.phone)}</p><div class="job-meta"><div><small>Scheduled start</small>${fmt(job.scheduled_start)}</div><div><small>Scheduled end</small>${fmt(job.scheduled_end)}</div><div><small>Assigned to</small>${esc(job.assigned?.full_name||'Unassigned')}</div><div><small>Address</small>${esc(job.address)}</div></div><p>${esc(job.instructions||'No job instructions.')}</p>${canManage()?'<button class="small-button" type="button" data-edit-current-job>Edit job details</button>':''}`;
+    $('[data-job-status-form] [name="status"]').value=job.status;
+    $('[data-reschedule-form] [name="new_start"]').value=localInput(job.scheduled_start);$('[data-reschedule-form] [name="new_end"]').value=localInput(job.scheduled_end);
+    await loadJobActivity(id);panel.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+
+  function editCurrentJob(){
+    const job=state.currentJob,form=$('[data-job-form]');if(!job||!form)return;
+    for(const key of ['id','inquiry_id','customer_name','phone','email','address','service_name','assigned_to','priority','status','instructions'])if(form.elements[key])form.elements[key].value=job[key]??'';
+    form.elements.scheduled_start.value=localInput(job.scheduled_start);form.elements.scheduled_end.value=localInput(job.scheduled_end);form.scrollIntoView({behavior:'smooth'});
+  }
+
+  async function updateJobStatus(event){
+    event.preventDefault();if(!state.currentJob)return;const status=event.currentTarget.elements.status.value;
+    const {error}=await client.from('svc_jobs').update({status,updated_at:new Date().toISOString()}).eq('id',state.currentJob.id);showAlert(error?error.message:'Job status updated.',!!error);if(!error){await loadJobs();openJob(state.currentJob.id);await loadDashboardMetrics()}
+  }
+
+  async function rescheduleJob(event){
+    event.preventDefault();if(!state.currentJob)return;const form=event.currentTarget,status=$('[data-reschedule-status]');
+    const {error}=await client.rpc('service_reschedule_jo

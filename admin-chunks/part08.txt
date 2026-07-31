@@ -1,0 +1,17 @@
+b',{p_job_id:state.currentJob.id,p_new_start:new Date(form.elements.new_start.value).toISOString(),p_new_end:new Date(form.elements.new_end.value).toISOString(),p_reason:form.elements.reason.value.trim(),p_manager_note:form.elements.manager_note.value.trim()||null});
+    status.textContent=error?error.message:'Schedule changed. The manager was alerted.';if(!error){form.elements.reason.value='';form.elements.manager_note.value='';await Promise.all([loadJobs(),loadNotifications()]);openJob(state.currentJob.id)}
+  }
+
+  async function saveJobNote(event){
+    event.preventDefault();if(!state.currentJob)return;const form=event.currentTarget;
+    const {error}=await client.from('svc_job_notes').insert({job_id:state.currentJob.id,author_id:state.session.user.id,note:form.elements.note.value.trim(),customer_visible:form.elements.customer_visible.checked});
+    showAlert(error?error.message:'Work note added.',!!error);if(!error){form.reset();await loadJobActivity(state.currentJob.id)}
+  }
+
+  async function uploadJobPhoto(event){
+    event.preventDefault();if(!state.currentJob)return;const form=event.currentTarget,status=$('[data-photo-status]'),file=form.elements.photo.files[0];
+    if(!file)return;if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>8*1024*1024){status.textContent='Use a JPEG, PNG, or WebP image under 8 MB.';return}
+    status.textContent='Uploading…';const clean=file.name.replace(/[^a-zA-Z0-9._-]/g,'-');const path=`${state.currentJob.id}/${Date.now()}-${clean}`;
+    const up=await client.storage.from('service-job-files').upload(path,file);if(up.error){status.textContent=up.error.message;return}
+    const {error}=await client.from('svc_job_photos').insert({job_id:state.currentJob.id,uploaded_by:state.session.user.id,category:form.elements.category.value,storage_path:path,caption:form.elements.caption.value.trim()||null});
+    status.textContent=error?error.message:'Photo uploaded.';if(!error){form.reset();await loadJobActivity(state.c

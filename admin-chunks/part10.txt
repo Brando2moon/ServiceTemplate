@@ -1,0 +1,11 @@
+ries.length?entries.map(e=>e.html).join(''):'<div class="empty-admin">No notes, photos, or schedule changes yet.</div>';
+  }
+
+  async function loadServices(){
+    if(!canManage())return;const {data,error}=await client.from('svc_services').select('*').order('sort_order').order('name');if(error)return;state.services=data||[];
+    $('[data-service-list]').innerHTML=state.services.map(item=>`<article class="content-item"><div><strong>${esc(item.name)}</strong><p>${esc(item.short_description)} · ${item.active?'Active':'Hidden'}</p></div><div class="content-item-actions"><button data-edit-service="${item.id}">Edit</button>${isOwner()?`<button data-delete-service="${item.id}">Delete</button>`:''}</div></article>`).join('')||'<div class="empty-admin">No services.</div>';
+  }
+  function editService(id){const item=state.services.find(row=>row.id===id),form=$('[data-service-form]');if(!item)return;for(const key of ['id','name','short_description','long_description','image_url','sort_order'])form.elements[key].value=item[key]??'';form.elements.featured.checked=item.featured;form.elements.active.checked=item.active;form.scrollIntoView({behavior:'smooth'})}
+  async function saveService(event){event.preventDefault();const form=event.currentTarget,status=$('[data-service-status]'),row={name:form.elements.name.value.trim(),short_description:form.elements.short_description.value.trim(),long_description:form.elements.long_description.value.trim()||null,image_url:form.elements.image_url.value.trim()||null,sort_order:Number(form.elements.sort_order.value||0),featured:form.elements.featured.checked,active:form.elements.active.checked};const result=form.elements.id.value?await client.from('svc_services').update(row).eq('id',form.elements.id.value):await client.from('svc_services').insert(row);status.textContent=result.error?result.error.message:'Service saved.';if(!result.error){form.reset();form.elements.active.checked=true;await loadServices()}}
+
+  async function loadProjects(){if(!can
