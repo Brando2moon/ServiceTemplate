@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Interactive before and after service project gallery.">
+  <title>Project Gallery — Service Business Template</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="gallery.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="gallery-page" data-page="gallery">
+  <div data-site-header></div>
+  <main class="page-shell">
+    <section class="page-hero gallery-hero">
+      <span class="eyebrow">Project gallery</span>
+      <h1>Dark spaces transformed with professional lighting.</h1>
+      <p>Click a dark before photo to send electricity across the image and reveal the bright finished result. Click again to return to before.</p>
+    </section>
+
+    <section class="gallery-section" aria-labelledby="gallery-heading">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Before and after</span>
+          <h2 id="gallery-heading">Tap a project to restore the power.</h2>
+        </div>
+        <p>Published projects are loaded directly from the admin and Supabase. New projects appear here after both photos are added and the project is published.</p>
+      </div>
+      <div class="project-grid gallery-grid" data-project-grid aria-live="polite"></div>
+    </section>
+
+    <section class="cta-panel">
+      <div><h2>Need lighting or electrical service?</h2><p>Send the team details about your home, pool, marina, or business.</p></div>
+      <a class="btn primary" href="contact.html#request">Request service</a>
+    </section>
+  </main>
+  <div data-site-footer></div>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
