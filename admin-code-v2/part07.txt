@@ -1,0 +1,54 @@
+=globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const path=`projects/${projectKey}/${kind}-${unique}.${extension}`;
+    const {error}=await client.storage.from('service-public').upload(path,file,{cacheControl:'3600',contentType:file.type,upsert:false});
+    if(error)throw error;
+    const {data}=client.storage.from('service-public').getPublicUrl(path);
+    return data.publicUrl;
+  }
+
+  async function deleteStoredProjectPhoto(url){
+    const path=projectStoragePath(url);
+    if(!path)return;
+    const {error}=await client.storage.from('service-public').remove([path]);
+    if(error)throw error;
+  }
+
+  async function loadProjects(){
+    if(!canManage())return;
+    const {data,error}=await client.from('svc_projects').select('*').order('sort_order').order('created_at',{ascending:false});
+    if(error){showAlert('Unable to load projects.',true);return}
+    state.projects=data||[];
+    $('[data-project-list]').innerHTML=state.projects.map(item=>`<article class="content-item project-admin-item"><div class="project-admin-images"><span>${item.before_image_url?`<img src="${esc(item.before_image_url)}" alt="Before ${esc(item.title)}">`:'Before missing'}</span><span>${item.after_image_url?`<img src="${esc(item.after_image_url)}" alt="After ${esc(item.title)}">`:'After missing'}</span></div><div><strong>${esc(item.title)}</strong><p>${esc(item.service_category||'Project')} · ${item.published?'Published':'Draft'}</p></div><div class="content-item-actions"><button data-edit-project="${item.id}">Edit</button>${isOwner()?`<button data-delete-project="${item.id}">Delete</button>`:''}</div></article>`).join('')||'<div class="empty-admin">No projects.</div>';
+  }
+
+  function editProject(id){
+    const item=state.projects.find(row=>row.id===id),form=$('[data-project-form]');
+    if(!item)return;
+    for(const key of ['id','title','service_category','location_label','description','before_image_url','after_image_url','completed_on','sort_order'])form.elements[key].value=item[key]??'';
+    form.elements.before_photo.value='';
+    form.elements.after_photo.value='';
+    form.elements.featured.checked=item.featured;
+    form.elements.published.checked=item.published;
+    updateProjectPhotoPreview('before',item.before_image_url||'');
+    updateProjectPhotoPreview('after',item.after_image_url||'');
+    $('[data-project-status]').textContent='';
+    form.scrollIntoView({behavior:'smooth'});
+  }
+
+  async function saveProject(event){
+    event.preventDefault();
+    const form=event.currentTarget,status=$('[data-project-status]'),submit=form.querySelector('button[type="submit"]');
+    const id=form.elements.id.value;
+    const existing=state.projects.find(item=>item.id===id);
+    const beforeFile=form.elements.before_photo.files[0];
+    const afterFile=form.elements.after_photo.files[0];
+    try{
+      validateProjectPhoto(beforeFile);validateProjectPhoto(afterFile);
+      submit.disabled=true;status.textContent='Saving project and photos…';
+      const projectKey=id||globalThis.crypto?.randomUUID?.()||`${Date.now()}`;
+      let beforeUrl=form.elements.before_image_url.value.trim()||null;
+      let afterUrl=form.elements.after_image_url.value.trim()||null;
+      if(beforeFile)beforeUrl=await uploadProjectPhoto(beforeFile,'before',projectKey);
+      if(afterFile)afterUrl=await uploadProjectPhoto(afterFile,'after',projectKey);
+      const requestedPublished=form.elements.published.checked;
+      const row={title:form.elements.title.value.trim(),service_category:form.elements.service
