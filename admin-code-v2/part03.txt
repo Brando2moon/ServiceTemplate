@@ -1,0 +1,36 @@
+d}">${esc(p.full_name||p.email)} — ${p.role}</option>`).join('');
+    const list=$('[data-staff-list]');if(!list||!isOwner())return;
+    list.innerHTML=state.staff.map(person=>`<article class="content-item"><div><strong>${esc(person.full_name||person.email)}</strong><p>${esc(person.email)} · ${esc(person.role)} · ${person.active?'Active':'Disabled'}</p></div><div class="content-item-actions">${person.role==='owner'?'<span class="status-badge">Owner</span>':`<select data-staff-role="${person.id}"><option value="manager" ${person.role==='manager'?'selected':''}>Manager</option><option value="employee" ${person.role==='employee'?'selected':''}>Employee</option></select><button data-toggle-staff="${person.id}">${person.active?'Disable':'Enable'}</button><button data-delete-staff="${person.id}">Delete</button>`}</div></article>`).join('');
+  }
+
+  async function saveStaff(event){
+    event.preventDefault();const form=event.currentTarget,status=$('[data-staff-status]');status.textContent='Creating account…';
+    const {data,error}=await client.functions.invoke('service-staff-admin',{body:{action:'create',full_name:form.full_name.value.trim(),email:form.email.value.trim(),password:form.password.value,role:form.role.value}});
+    status.textContent=error?(data?.error||error.message):'Staff account created.';if(!error){form.reset();await loadStaff()}
+  }
+
+  async function staffAction(action,id,extra={}){
+    const {data,error}=await client.functions.invoke('service-staff-admin',{body:{action,user_id:id,...extra}});showAlert(error?(data?.error||error.message):'Staff access updated.',!!error);if(!error)await loadStaff();
+  }
+
+  async function loadJobs(){
+    const {data,error}=await client.from('svc_jobs').select('*,assigned:svc_profiles!svc_jobs_assigned_to_fkey(full_name,email,role)').order('scheduled_start',{ascending:true});
+    if(error){showAlert('Unable to load jobs.',true);return}
+    state.jobs=data||[];renderJobs();
+  }
+
+  function jobsForRange(){
+    let jobs=[...state.jobs];const filter=$('[data-job-date-filter]')?.value;if(filter)jobs=jobs.filter(job=>String(job.scheduled_start||'').slice(0,10)===filter);
+    const now=new Date();let end=null;if(state.calendarRange==='today'){end=new Date(now);end.setHours(23,59,59,999)}if(state.calendarRange==='week')end=new Date(now.getTime()+7*86400000);if(state.calendarRange==='month')end=new Date(now.getTime()+30*86400000);
+    if(end)jobs=jobs.filter(job=>new Date(job.scheduled_start)>=new Date(now.toDateString())&&new Date(job.scheduled_start)<=end);
+    return jobs;
+  }
+
+  function renderJobs(){
+    const board=$('[data-job-board]');if(!board)return;const jobs=jobsForRange();
+    board.innerHTML=jobs.length?jobs.map(job=>`<article class="job-card ${state.currentJob?.id===job.id?'selected':''}" data-open-job="${job.id}"><time>${fmt(job.scheduled_start)}</time><h3>${esc(job.service_name)}</h3><p>${esc(job.customer_name)} · ${esc(job.address)}</p><div class="job-card-footer">${badge(job.status)}<small>${esc(job.assigned?.full_name||'Unassigned')}</small></div></article>`).join(''):'<div class="empty-admin">No jobs in this calendar range.</div>';
+  }
+
+  async function saveJob(event){
+    event.preventDefault();const form=event.currentTarget,status=$('[data-job-form-status]');
+    const row={inquiry_id:form.elements.inquiry_id.value||null,customer_name:form.elements.customer_name.value.trim(),phone:form.elements.phone.value.trim(),email:form.elements.email.value.trim()||null,address:form.elements.address.value.trim(),service_name:form.elements.service_name.v
