@@ -119,7 +119,7 @@ An original generic before/after example image pair will be included for demonst
 
 ## 4. Authentication and Staff Roles
 
-There is no public registration. The first owner account is provisioned during setup. Only the owner can create staff accounts.
+There is no public registration. The first owner account is provisioned during setup. Only the owner can create, disable, delete, or change the role and permissions of staff accounts.
 
 ### 4.1 Owner
 
@@ -128,7 +128,7 @@ The owner has full control and can:
 - Manage all public website content
 - Manage company settings, logo, and colors
 - Create, edit, disable, and delete staff accounts
-- Assign staff roles
+- Assign staff roles and permissions
 - Manage services, projects, inquiries, quotes, jobs, schedules, notes, and photos
 - Delete operational and content records
 - View all schedules, notifications, and history
@@ -146,9 +146,9 @@ Managers can:
 - Receive employee reschedule alerts
 - Review work notes and photos
 - Manage job status and follow-up work
-- Create or disable employee accounts only when explicitly granted the staff-management permission by the owner
+- Publish approved completed work to the public project gallery
 
-Managers cannot delete or modify the owner account.
+Managers cannot create, disable, or delete accounts; change staff roles or permissions; or delete or modify the owner account.
 
 ### 4.3 Employee
 
@@ -167,7 +167,7 @@ Employees cannot:
 - Delete records
 - Manage public website settings
 - Manage staff accounts or permissions
-- View jobs not assigned to them unless a manager grants broader access
+- View or change jobs not assigned to them
 
 ## 5. Inquiry, Quote, and Job Workflow
 
@@ -184,7 +184,7 @@ The operational workflow is:
 9. Job is marked completed or follow-up required.
 10. Completed projects may be published to the before/after gallery after owner or manager approval.
 
-No public service pricing is shown. Quote amounts may be stored privately inside the admin if needed during implementation, but they are never rendered on public pages.
+No public service pricing is shown. Quote amounts are private admin-only fields and are never rendered on public pages.
 
 ## 6. Service Calendar and Scheduling
 
@@ -230,7 +230,7 @@ The system records:
 - Timestamp
 - Reason
 
-The system creates an in-app notification for every active manager. If no manager exists, the owner receives the notification. The notification links directly to the changed job.
+The system creates an in-app notification for every active manager. If no active manager exists, the owner receives the notification. The notification links directly to the changed job.
 
 Email or SMS notification delivery is an optional future adapter and is not required for the first working template.
 
@@ -267,13 +267,13 @@ The secure admin application includes:
 - Projects and before/after gallery manager
 - Website content editor
 - Business and branding settings
-- Staff and permission manager
+- Owner-only staff and permission manager
 - Notification center
 - Account and sign-out controls
 
 The admin link is not shown in the public navigation. Staff use a direct login URL.
 
-## 9. Suggested Technical Architecture
+## 9. Technical Architecture
 
 ### 9.1 Frontend
 
@@ -292,7 +292,7 @@ Supabase provides:
 - PostgreSQL database
 - Row Level Security
 - Storage for logos, service images, project images, and job photos
-- Realtime or polling support for notifications and calendar updates
+- Supabase Realtime for in-app notifications and schedule updates, with manual refresh as a fallback
 
 ### 9.3 Core Data Tables
 
@@ -319,11 +319,11 @@ Exact columns and indexes will be defined in the implementation plan and migrati
 ## 10. Security Boundaries
 
 - Public users can read only published website content and active services/projects.
-- Public users can create contact inquiries through a narrowly scoped insert policy or server-side function.
+- Public contact forms submit through a dedicated, validated `submit_inquiry` database function; anonymous users do not receive direct table access.
 - Employees can read and update only assigned jobs and their related notes/photos.
-- Managers can manage operational content according to role permissions.
-- Owners have full tenant-level control.
-- Staff creation must use a secure server-side Supabase function or Edge Function; the browser must never receive a service-role key.
+- Managers can manage operational content but cannot manage accounts or permissions.
+- Owners have full deployment-level control.
+- Staff creation uses an owner-authorized Supabase Edge Function; the browser never receives a service-role key.
 - Storage policies mirror database permissions.
 - Destructive actions require confirmation and owner-only access where specified.
 - Audit fields record who created or modified sensitive operational records.
@@ -352,7 +352,7 @@ Automated or scripted tests will verify:
 - No public prices
 - Contact inquiry creation
 - Owner, manager, and employee permission boundaries
-- Owner staff-account management
+- Owner-only staff-account and permission management
 - Employee assigned-job access
 - Employee reschedule logging and manager notification creation
 - Calendar rendering and schedule updates
